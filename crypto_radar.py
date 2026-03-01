@@ -1,20 +1,18 @@
 import requests
 import statistics
+import os
 from datetime import datetime
 
-# =========================
-# CONFIG (RELLENA ESTO)
-# =========================
-import os
 
+# =========================
+# CONFIG (SECRETS)
+# =========================
 TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["CHAT_ID"]
 
-# =========================
-# CONFIG
-# =========================
-TELEGRAM_TOKEN = "PEGA_AQUI_TU_TOKEN"
-CHAT_ID = "PEGA_AQUI_TU_CHAT_ID"
+# Chequeo de seguridad (RECOMENDADO)
+if not TELEGRAM_TOKEN or not CHAT_ID:
+    raise Exception("Missing Telegram credentials")
 
 # =========================
 # TELEGRAM
