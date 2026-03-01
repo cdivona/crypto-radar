@@ -9,6 +9,12 @@ TELEGRAM_TOKEN = "8799458763:AAHVaMqSdw_wz1qumRuTxG_jiAVwWjTMn1g"
 CHAT_ID = "1751107577"
 
 # =========================
+# CONFIG
+# =========================
+TELEGRAM_TOKEN = "PEGA_AQUI_TU_TOKEN"
+CHAT_ID = "PEGA_AQUI_TU_CHAT_ID"
+
+# =========================
 # TELEGRAM
 # =========================
 def send_telegram(message):
@@ -20,13 +26,13 @@ def send_telegram(message):
     requests.post(url, data=payload)
 
 # =========================
-# HORA ACTUAL (UTC)
+# TIME
 # =========================
 now = datetime.utcnow()
 current_hour = now.hour
 
 # =========================
-# PRECIOS
+# PRICE DATA
 # =========================
 price_url = "https://api.coingecko.com/api/v3/simple/price"
 price_params = {
@@ -41,14 +47,20 @@ xrp = price_data["ripple"]["usd"]
 sol = price_data["solana"]["usd"]
 
 # =========================
-# HISTORICO
+# HISTORY
 # =========================
-def get_history(coin_id):
+def get_history(coin_id, days=250):
     url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart"
-    params = {"vs_currency": "usd", "days": "14"}
+    params = {"vs_currency": "usd", "days": str(days)}
     data = requests.get(url, params=params).json()
     return [p[1] for p in data["prices"]]
 
+btc_hist = get_history("bitcoin", 250)
+eth_hist = get_history("ethereum", 250)
+
+# =========================
+# RSI
+# =========================
 def compute_rsi(prices, period=14):
     gains, losses = [], []
     for i in range(1, len(prices)):
@@ -62,18 +74,28 @@ def compute_rsi(prices, period=14):
     rs = avg_gain / avg_loss
     return round(100 - (100 / (1 + rs)), 1)
 
-btc_hist = get_history("bitcoin")
-eth_hist = get_history("ethereum")
-
 btc_rsi = compute_rsi(btc_hist)
 eth_rsi = compute_rsi(eth_hist)
 
-btc_week = (btc_hist[-1] / btc_hist[-8] - 1) * 100
-eth_week = (eth_hist[-1] / eth_hist[-8] - 1) * 100
+# =========================
+# MOVING AVERAGES
+# =========================
+def moving_average(prices, period):
+    return statistics.mean(prices[-period:])
+
+btc_ma50 = moving_average(btc_hist, 50)
+btc_ma200 = moving_average(btc_hist, 200)
 
 # =========================
-# RISK SCORE
+# WEEK / MONTH MOMENTUM
 # =========================
+btc_week = (btc_hist[-1] / btc_hist[-8] - 1) * 100
+eth_week = (eth_hist[-1] / eth_hist[-8] - 1) * 100
+btc_30d = (btc_hist[-1] / btc_hist[-31] - 1) * 100
+
+# ============================================================
+# 🔥 RISK SCORE (EUFORIA / TECHO)
+# ============================================================
 risk = 0
 
 if btc_rsi > 70:
@@ -93,9 +115,78 @@ if eth > 2500:
 
 risk = min(risk, 100)
 
-# =========================
-# ALERTAS
-# =========================
+# ============================================================
+# ❄️ DOWNSIDE RISK (MERCADO ROMPIENDOSE)
+# ============================================================
+downside = 0
+down_signals = []
+
+if btc < btc_ma200:
+    downside += 30
+    down_signals.append("⚠️ BTC bajo MA200")
+
+if btc < btc_ma50:
+    downside += 15
+    down_signals.append("📉 BTC bajo MA50")
+
+if btc_rsi < 40:
+    downside += 20
+    down_signals.append(f"RSI débil {btc_rsi}")
+
+if btc_week < -10:
+    downside += 25
+    down_signals.append(f"🔻 BTC {btc_week:.1f}% semanal")
+
+downside = min(downside, 100)
+
+# ============================================================
+# 🧭 MARKET REGIME
+# ============================================================
+if btc > btc_ma200 and downside < 40:
+    regime = "🟢 BULL TREND"
+elif downside >= 60:
+    regime = "🔴 BEARISH SHIFT"
+else:
+    regime = "🟡 NEUTRAL"
+
+# ============================================================
+# 🔥 CYCLE TOP MODEL
+# ============================================================
+extension = (btc - btc_ma200) / btc_ma200 * 100
+
+cycle_score = 0
+cycle_signals = []
+
+if extension > 60:
+    cycle_score += 20
+    cycle_signals.append(f"📈 +{extension:.0f}% sobre MA200")
+
+if extension > 80:
+    cycle_score += 20
+
+if btc_rsi > 78:
+    cycle_score += 20
+    cycle_signals.append(f"🔥 RSI extremo {btc_rsi}")
+
+if btc_30d > 40:
+    cycle_score += 20
+    cycle_signals.append(f"🚀 +{btc_30d:.0f}% en 30d")
+
+if risk >= 75:
+    cycle_score += 20
+
+cycle_score = min(cycle_score, 100)
+
+if cycle_score >= 70:
+    cycle_status = "🚨 ALTA PROBABILIDAD DE TECHO"
+elif cycle_score >= 40:
+    cycle_status = "⚠️ POSIBLE DISTRIBUCION"
+else:
+    cycle_status = "🟢 Ciclo saludable"
+
+# ============================================================
+# 🚨 PRICE ALERTS
+# ============================================================
 alerts = []
 
 if btc > 75000:
@@ -107,45 +198,36 @@ if eth > 2500:
 if sol > 140:
     alerts.append(f"🚨 SOL > 140 (${sol:,.0f})")
 
-if btc_rsi > 75:
-    alerts.append(f"⚠️ BTC RSI extremo: {btc_rsi}")
-
-if eth_rsi > 75:
-    alerts.append(f"⚠️ ETH RSI extremo: {eth_rsi}")
-
-if btc_week > 15:
-    alerts.append(f"📈 BTC +{btc_week:.1f}% semanal")
-
-# =========================
-# REGIMEN
-# =========================
-if risk >= 70:
-    regime = "🔥 POSIBLE TECHO DE CICLO"
-elif risk >= 40:
-    regime = "🟡 RIESGO MEDIO"
-else:
-    regime = "🟢 NORMAL"
-
-# =========================
-# MENSAJE BASE
-# =========================
+# ============================================================
+# 📊 BASE MESSAGE
+# ============================================================
 base_message = (
-    "📊 CRYPTO DAILY REPORT\n\n"
+    "📊 CRYPTO RADAR PRO\n\n"
     f"BTC: ${btc:,.0f} | RSI {btc_rsi}\n"
     f"ETH: ${eth:,.0f} | RSI {eth_rsi}\n"
     f"XRP: ${xrp:,.2f}\n"
     f"SOL: ${sol:,.0f}\n\n"
+    f"Market Regime: {regime}\n"
     f"Risk Score: {risk}/100\n"
-    f"{regime}"
+    f"Downside Risk: {downside}/100\n"
+    f"Cycle Top Score: {cycle_score}/100\n"
+    f"{cycle_status}"
 )
 
-# =========================
-# ENVIO
-# =========================
-# ALERTAS INMEDIATAS
-if alerts:
-    send_telegram(base_message + "\n\n" + "\n".join(alerts))
+# ============================================================
+# 📩 SEND LOGIC
+# ============================================================
 
-# REPORTE DIARIO A LAS 11:00 UTC
+# ALERTAS PRIORITARIAS
+if alerts:
+    send_telegram(
+        base_message
+        + "\n\n"
+        + "\n".join(alerts)
+        + ("\n\n" + "\n".join(cycle_signals) if cycle_signals else "")
+        + ("\n\n" + "\n".join(down_signals) if down_signals else "")
+    )
+
+# REPORTE DIARIO 11:00 UTC
 elif current_hour == 11:
     send_telegram(base_message)
