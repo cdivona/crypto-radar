@@ -3,7 +3,7 @@ import requests
 # =========================
 # CONFIG (RELLENA ESTO)
 # =========================
-TELEGRAM_TOKEN = "8799458763:AAG--SoRpvskDLeMZcLwqeYwINC7CD-zgYA"
+TELEGRAM_TOKEN = "8799458763:AAHVaMqSdw_wz1qumRuTxG_jiAVwWjTMn1g"
 CHAT_ID = "1751107577"
 
 # =========================
