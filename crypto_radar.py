@@ -147,6 +147,9 @@ else:
 # =========================
 # ENVIAR SOLO SI HAY ALGO
 # =========================
+# ===== TEST TEMPORAL =====
+alerts.append("🧪 TEST FORZADO")
+
 if alerts or risk >= 60:
     message = (
         "🚨 CRYPTO RADAR PRO\n\n"
