@@ -36,7 +36,7 @@ if eth > 4500:
 if xrp > 1.5:
     alert += f"🚨 XRP alto: ${xrp}\n"
 
-if alert:
+if True:
     send_telegram("CRYPTO RADAR PRO\n\n" + alert)
 else:
     print("Sin alertas.")
