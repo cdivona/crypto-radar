@@ -5,8 +5,10 @@ from datetime import datetime
 # =========================
 # CONFIG (RELLENA ESTO)
 # =========================
-TELEGRAM_TOKEN = "8799458763:AAHVaMqSdw_wz1qumRuTxG_jiAVwWjTMn1g"
-CHAT_ID = "1751107577"
+import os
+
+TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
+CHAT_ID = os.environ["CHAT_ID"]
 
 # =========================
 # CONFIG
