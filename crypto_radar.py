@@ -202,7 +202,83 @@ elif cycle_score >= 40:
     cycle_status = "⚠️ POSIBLE DISTRIBUCION"
 else:
     cycle_status = "🟢 Ciclo saludable"
+    
+# ============================================================
+# ❄️ CAPITULATION DETECTOR
+# ============================================================
+cap_score = 0
+cap_signals = []
 
+if btc_rsi < 35:
+    cap_score += 25
+    cap_signals.append(f"RSI muy bajo ({btc_rsi})")
+
+if btc_week < -15:
+    cap_score += 25
+    cap_signals.append(f"🔻 Caída semanal fuerte ({btc_week:.1f}%)")
+
+if btc < btc_ma200:
+    cap_score += 25
+    cap_signals.append("BTC bajo MA200")
+
+if downside >= 60:
+    cap_score += 25
+    cap_signals.append("Presión bajista elevada")
+
+cap_score = min(cap_score, 100)
+
+if cap_score >= 75:
+    cap_status = "🚨 CAPITULACIÓN probable"
+elif cap_score >= 40:
+    cap_status = "⚠️ Estrés de mercado"
+else:
+    cap_status = "🟢 Sin capitulación"
+
+
+# ============================================================
+# 🔮 7D CYCLE FORECAST
+# ============================================================
+
+# cambio RSI últimos días
+btc_rsi_prev = compute_rsi(btc_hist[:-7])
+rsi_trend = btc_rsi - btc_rsi_prev
+
+forecast_score = 0
+
+# momentum
+if btc_week > 8:
+    forecast_score += 25
+elif btc_week < -8:
+    forecast_score -= 25
+
+# RSI trend
+if rsi_trend > 5:
+    forecast_score += 20
+elif rsi_trend < -5:
+    forecast_score -= 20
+
+# posición vs MA
+if btc > btc_ma50:
+    forecast_score += 15
+else:
+    forecast_score -= 15
+
+# riesgo actual
+if risk > 70:
+    forecast_score -= 20
+elif risk < 30:
+    forecast_score += 10
+
+# clasificación final
+if forecast_score >= 40:
+    forecast = "🚀 Aceleración alcista"
+elif forecast_score >= 10:
+    forecast = "🟢 Tendencia saludable"
+elif forecast_score > -20:
+    forecast = "🟡 Enfriándose"
+else:
+    forecast = "🔴 Riesgo de giro bajista"
+    
 # ============================================================
 # 🚨 PRICE ALERTS
 # ============================================================
@@ -231,6 +307,9 @@ base_message = (
     f"Downside Risk: {downside}/100\n"
     f"Cycle Top Score: {cycle_score}/100\n"
     f"{cycle_status}"
+    f"\nCapitulation Score: {cap_score}/100\n"
+    f"{cap_status}\n"
+    f"7D Forecast: {forecast}"
 )
 
 # ============================================================
